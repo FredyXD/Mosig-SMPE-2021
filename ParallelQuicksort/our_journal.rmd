@@ -1,0 +1,61 @@
+```{bash}
+```
+# Laboratory Notebook for a Multi-Threaded Version of Quicksort
+
+## Experiments
+```{bash}
+./src/parallelQuicksort [1000000]
+```
+Then we write a script to execute the code and write the result in a csv file
+```{bash}
+OUTPUT_DIRECTORY=data/`hostname`_`date +%F`
+mkdir -p $OUTPUT_DIRECTORY
+OUTPUT_FILE=$OUTPUT_DIRECTORY/measurements_`date +%R`
+txt='.txt'
+touch $OUTPUT_FILE$txt
+#for i in 100 1000 10000 100000 1000000; do
+for i in 128 256 512 1024 2048 4096 8192; do
+    for rep in `seq 1 5`; do
+        echo "Size: $i" >> $OUTPUT_FILE$txt;
+        ./src/parallelQuicksort $i >> $OUTPUT_FILE$txt;
+    done ;
+done
+
+csv='.csv'
+perl scripts/csv_quicksort_extractor2.pl < $OUTPUT_FILE$txt > $OUTPUT_FILE$csv
+
+cp $OUTPUT_FILE$csv data/data.csv
+```
+
+Now we read the csv file to get the data into a data frame
+
+```{r}
+df <- read.csv("data/data.csv",header=T)
+df
+```
+Our colums are **Size**, **Seq**, **Par**, and **Libc** corresponding to the size of the array, the time of the sequential sorting algorithm on this array, the parallel one and the built-in one.
+We choose to aggregrate the information by the Size column using the *mean()* method
+```{r}
+library(dplyr)
+
+#by_size <-df %>% group_by(Size)
+by_size = aggregate(df[,2:4],list(Size = df$Size), mean)
+by_size
+```
+Now we plot our table
+```{r}
+plot(by_size$Size,by_size$Seq)
+#plot(by_size)
+
+```
+```{bash}
+plot 'data/data.csv' using 1:2 with linespoints, '' using 1:3 with linespoints, '' using 1:4 with linespoints
+" | gnuplot
+
+echo [[file:data/data.png]]
+```
+
+
+
+
+
